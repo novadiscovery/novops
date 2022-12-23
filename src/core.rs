@@ -8,6 +8,7 @@ use schemars::JsonSchema;
 use crate::modules::hashivault::{config::HashivaultConfig, kv2::HashiVaultKeyValueV2Input};
 use crate::modules::bitwarden;
 use crate::modules::aws;
+use crate::modules::gcloud;
 use crate::modules::files::{FileInput};
 use crate::modules::variables::{VariableInput};
 
@@ -114,6 +115,7 @@ pub enum StringResolvableInput {
     HashiVaultKeyValueV2Input(HashiVaultKeyValueV2Input),
     AwsSSMParamStoreInput(aws::ssm::AwsSSMParamStoreInput),
     AwsSecretsManagerSecretInput(aws::secretsmanager::AwsSecretsManagerSecretInput),
+    GCloudSecretManagerSecretInput(gcloud::secretmanager::GCloudSecretManagerSecretInput)
 }
 
 /**
@@ -134,7 +136,8 @@ impl ResolveTo<String> for StringResolvableInput {
             StringResolvableInput::BitwardeItemInput(bw) => bw.resolve(ctx).await,
             StringResolvableInput::HashiVaultKeyValueV2Input(hv) => hv.resolve(ctx).await,
             StringResolvableInput::AwsSSMParamStoreInput(p) => p.resolve(ctx).await,
-            StringResolvableInput::AwsSecretsManagerSecretInput(s) => s.resolve(ctx).await
+            StringResolvableInput::AwsSecretsManagerSecretInput(s) => s.resolve(ctx).await,
+            StringResolvableInput::GCloudSecretManagerSecretInput(s) => s.resolve(ctx).await
         }
     }
 }
@@ -150,6 +153,7 @@ impl ResolveTo<String> for StringResolvableInput {
 #[serde(untagged)]
 pub enum BytesResolvableInput {
     AwsSecretsManagerSecretInput(aws::secretsmanager::AwsSecretsManagerSecretInput),
+    GCloudSecretManagerSecretInput(gcloud::secretmanager::GCloudSecretManagerSecretInput),
     StringResolvableInput(StringResolvableInput),
     ByteVec(Vec<u8>)
 }
@@ -161,6 +165,7 @@ impl ResolveTo<Vec<u8>> for BytesResolvableInput {
         let result = match self {
             BytesResolvableInput::ByteVec(z) => Ok(z.clone()),
             BytesResolvableInput::AwsSecretsManagerSecretInput(z) => z.resolve(ctx).await,
+            BytesResolvableInput::GCloudSecretManagerSecretInput(z) => z.resolve(ctx).await,
             BytesResolvableInput::StringResolvableInput(z) => z.resolve(ctx).await.map(|x| x.into_bytes()),
         };
         
