@@ -7,9 +7,9 @@ mod tests {
     use novops::modules::aws::config::AwsClientConfig;
     use aws_sdk_ssm::model::ParameterType;
     use aws_smithy_types::Blob;
-    use crate::test_utils::load_env_for;
+    use crate::test_utils;
 
-    use log::{info, debug};
+    use log::info;
 
     #[tokio::test]
     async fn test_assume_role() -> Result<(), anyhow::Error> {
@@ -17,7 +17,7 @@ mod tests {
         setup_test_env().await?;
         ensure_test_role_exists("NovopsTestAwsAssumeRole").await?;        
 
-        let outputs = load_env_for("aws_assumerole", "dev").await?;
+        let outputs = test_utils::load_env_for("aws_assumerole", "dev").await?;
 
         info!("test_assume_role: Found variables: {:?}", outputs.variables);
 
@@ -42,7 +42,7 @@ mod tests {
         let psecurestring_value = "novops-string-test-secure";
         ensure_test_ssm_param_exists("novops-test-ssm-param-secureString", psecurestring_value, ParameterType::SecureString).await?;
 
-        let outputs = load_env_for("aws_ssm", "dev").await?;
+        let outputs = test_utils::load_env_for("aws_ssm", "dev").await?;
 
         info!("test_ssmparam: Found variables: {:?}", outputs.variables);
 
@@ -65,7 +65,7 @@ mod tests {
         ensure_test_secret_exists("novops-test-secretsmanager-string", Some(expect_string.clone()), None).await?;
         ensure_test_secret_exists("novops-test-secretsmanager-binary", None, Some(expect_binary.clone())).await?;
         
-        let outputs = load_env_for("aws_secretsmanager", "dev").await?;
+        let outputs = test_utils::load_env_for("aws_secretsmanager", "dev").await?;
 
         info!("test_secretsmanager: Found variables: {:?}", outputs.variables);
         info!("test_secretsmanager: Found files: {:?}", outputs.files);
@@ -90,7 +90,7 @@ mod tests {
         let non_utf8_binary = vec![0, 159, 146, 150];
         ensure_test_secret_exists("novops-test-secretsmanager-binary-non-utf8", None, Some(non_utf8_binary.clone())).await?;
         
-        let outputs = load_env_for("aws_secretsmanager_var_nonutf8", "dev").await;
+        let outputs = test_utils::load_env_for("aws_secretsmanager_var_nonutf8", "dev").await;
         outputs.expect_err("Expected non UTF-8 binary data to provoke an error.");
 
         Ok(())
@@ -175,11 +175,7 @@ mod tests {
 
     async fn setup_test_env() -> Result<(), anyhow::Error> {
 
-        // Allow multiple invocation of logger
-        match env_logger::try_init() {
-            Ok(_) => {},
-            Err(e) => {debug!("env_logger::try_nit() error: {:?}", e)},
-        };
+        test_utils::init_log();
         
         // use known AWS config
         let aws_config = std::env::current_dir()?.join("tests/aws/config");
